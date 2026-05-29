@@ -42,8 +42,6 @@ Once everything is up:
 - API docs: http://localhost:8000/docs
 - Health check: http://localhost:8000/health
 
-The database is seeded with 8 products, 5 customers, and 4 orders on first run. The seed only runs when the database is empty, so restarts will not duplicate the data.
-
 To stop everything and wipe the database volume:
 
     docker compose down -v
