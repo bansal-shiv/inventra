@@ -87,8 +87,3 @@ VITE_API_URL: Backend base URL. Baked into the frontend by Vite at build time.
 
 Nothing is hardcoded. All of the above are read from environment variables. For local development they come from a .env file. On Render and Vercel they are set in each platform's dashboard.
 
-## Notes for later
-
-- The backend creates tables on startup with SQLAlchemy's create_all. That is fine for an assessment but does not handle schema changes on an existing database. For a real deployment, Alembic migrations would be the next step.
-- Render's free tier sleeps the backend (see the live demo section). For a real product this would be on a paid plan or a provider with no cold-start penalty.
-- Authentication is not part of the spec, so there is none. In production, at minimum the mutating routes would need a session or token check.
