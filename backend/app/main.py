@@ -11,8 +11,11 @@ Base.metadata.create_all(bind=engine)
 with SessionLocal() as _db:
     seed_if_empty(_db)
 
-app = FastAPI(title="Inventory & Order Management API", version="1.1.0")
-
+app = FastAPI(
+    title="Inventra API",
+    version="1.0",
+    description="Backend for Inventra — a small inventory and order management system. Endpoints for products, customers, orders, and dashboard stats.",
+)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.origins_list,
