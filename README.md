@@ -1,105 +1,94 @@
-# Inventra — Inventory & Order Management System
+# Inventra
 
-A full-stack app for managing products, customers, orders, and inventory. Built with
-FastAPI, PostgreSQL, and a React (Vite) frontend, fully containerized with Docker.
+A small inventory and order management system. Manages products, customers, orders, and stock levels. Built for a take-home assessment.
+
+## Live demo
+
+Frontend: https://inventra-two-rust.vercel.app
+Backend API docs: https://inventra-backend-7w85.onrender.com/docs
+Docker image: https://hub.docker.com/r/bansalshiv/inventra-backend
+
+The backend runs on Render's free tier, which sleeps the service after about 15 minutes of inactivity. The first request after a quiet period takes around 30 to 60 seconds to wake it back up. After that, things are fast until the next idle period. If the dashboard hangs at "Loading..." on first visit, that's the reason.
 
 ## Stack
 
-| Layer       | Tech                                          |
-|-------------|-----------------------------------------------|
-| Backend     | Python, FastAPI, SQLAlchemy                   |
-| Database    | PostgreSQL 16                                 |
-| Frontend    | React 18 (Vite), Tailwind CSS, react-hot-toast |
-| Containers  | Docker, Docker Compose                        |
+Backend: Python 3.11, FastAPI, SQLAlchemy, Pydantic.
+Database: PostgreSQL 16.
+Frontend: React 18 with Vite, Tailwind CSS, react-hot-toast for notifications.
+Containers: Docker and docker-compose.
 
-## Highlights
+I picked FastAPI over Flask because the auto-generated docs page is useful for testing and demoing. Every endpoint is interactive out of the box.
 
-- Full CRUD for products, customers, and orders
-- Business rules enforced server-side: unique SKU, unique email, unique phone,
-  non-negative quantity, inventory check, automatic stock reduction on order,
-  automatic stock restoration on cancellation, server-computed totals
-- Dashboard with totals, low-stock list, and recent orders
-- Toast notifications for actions, confirm dialogs for destructive ones
+## Features
+
+CRUD for products, customers, and orders. On top of that:
+
+- A dashboard with totals, a low-stock list, and the five most recent orders
+- Server-side business rules (see below)
+- Toast notifications for success and a confirm dialog before deletes
 - Search across products and customers
-- Seed data loaded on first startup for an instantly demoable app
+- Sample data loaded on first startup so the app is usable straight away
 
-## Project layout
+## Running it locally
 
-```
-.
-├── backend/            FastAPI app, models, routers, seed
-├── frontend/           React + Vite single-page app
-├── docker-compose.yml  runs db + backend + frontend together
-└── .env.example        copy to .env before running
-```
+You only need Docker installed. From the project root:
 
-## Running locally
+    cp .env.example .env
+    docker compose up --build
 
-You only need Docker installed.
+Once everything is up:
 
-```bash
-cp .env.example .env       # then edit the password
-docker compose up --build
-```
+- App: http://localhost:5173
+- API docs: http://localhost:8000/docs
+- Health check: http://localhost:8000/health
 
-- Frontend: http://localhost:5173
-- API + interactive docs: http://localhost:8000/docs
+The database is seeded with 8 products, 5 customers, and 4 orders on first run. The seed only runs when the database is empty, so restarts will not duplicate the data.
 
-The database is seeded with sample products, customers, and orders on first
-startup, so the app is immediately usable. To stop and wipe everything:
+To stop everything and wipe the database volume:
 
-```bash
-docker compose down -v
-```
-
-## API reference
-
-### Products
-| Method | Path             | Purpose            |
-|--------|------------------|--------------------|
-| POST   | /products        | Create a product   |
-| GET    | /products        | List products      |
-| GET    | /products/{id}   | Get one product    |
-| PUT    | /products/{id}   | Update a product   |
-| DELETE | /products/{id}   | Delete a product   |
-
-### Customers
-| Method | Path              | Purpose            |
-|--------|-------------------|--------------------|
-| POST   | /customers        | Create a customer  |
-| GET    | /customers        | List customers     |
-| GET    | /customers/{id}   | Get one customer   |
-| PUT    | /customers/{id}   | Update a customer  |
-| DELETE | /customers/{id}   | Delete a customer  |
-
-### Orders
-| Method | Path           | Purpose                              |
-|--------|----------------|--------------------------------------|
-| POST   | /orders        | Create an order                      |
-| GET    | /orders        | List orders                          |
-| GET    | /orders/{id}   | Get one order                        |
-| DELETE | /orders/{id}   | Cancel an order (stock is restored)  |
-
-### Stats
-`GET /stats` — totals, low-stock list, and the five most recent orders.
+    docker compose down -v
 
 ## Business rules
 
-- Product SKU is unique (409 on conflict).
-- Customer email and phone number are each unique (409 on conflict).
-- Product quantity cannot be negative (422 on input).
-- Orders are rejected with 400 when stock is insufficient.
-- Placing an order reduces stock; cancelling restores it.
-- Order totals are calculated by the backend at purchase-time prices.
-- Phone numbers accept 7–15 digits with spaces, dashes, and a leading +.
+Most of the interesting logic lives on the backend. The frontend just surfaces error messages from the API.
+
+- Product SKUs and customer emails are unique. 409 on conflict.
+- Phone numbers are unique too. Digits are normalised before the check, so "+91 98765 43210" and "9876543210" count as the same number.
+- Phone numbers accept 7 to 15 digits with spaces, dashes, and a leading plus.
+- Product quantity cannot go negative. 422 if you try.
+- Orders are rejected with 400 if any line item exceeds available stock.
+- Placing an order reduces stock; deleting an order restores it.
+- Order totals are computed server-side at purchase-time prices, so editing a product's price later does not rewrite historic order amounts.
+
+## API
+
+Products: GET, POST, GET /{id}, PUT /{id}, DELETE /{id}
+Customers: GET, POST, GET /{id}, PUT /{id}, DELETE /{id}
+Orders: GET, POST, GET /{id}, DELETE /{id}
+Stats: GET /stats (totals, low stock, recent orders)
+Health: GET /health
+
+Full request and response schemas, plus a try-it-now panel, are available at /docs.
+
+## Project layout
+
+    backend/            FastAPI app: models, routers, schemas, seed
+    frontend/           React and Vite single-page app
+    docker-compose.yml  brings up db, backend, and frontend together
+    .env.example        template, copy to .env before first run
 
 ## Environment variables
 
-| Variable                  | Used by   | Notes                              |
-|---------------------------|-----------|------------------------------------|
-| POSTGRES_USER/PASSWORD/DB | db        | Postgres credentials               |
-| DATABASE_URL              | backend   | Full Postgres connection string    |
-| CORS_ORIGINS              | backend   | Comma-separated allowed origins    |
-| LOW_STOCK_THRESHOLD       | backend   | Low-stock cutoff for the dashboard |
-| VITE_API_URL              | frontend  | Backend base URL (build-time)      |
+POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB: Postgres credentials.
+DATABASE_URL: Full Postgres connection string used by the backend.
+CORS_ORIGINS: Comma-separated list of allowed origins.
+LOW_STOCK_THRESHOLD: Products at or below this count appear on the dashboard.
+VITE_API_URL: Backend base URL. Baked into the frontend by Vite at build time.
 
+Nothing is hardcoded. All of the above are read from environment variables. For local development they come from a .env file. On Render and Vercel they are set in each platform's dashboard.
+
+## Notes for later
+
+- The backend creates tables on startup with SQLAlchemy's create_all. That is fine for an assessment but does not handle schema changes on an existing database. For a real deployment, Alembic migrations would be the next step.
+- Render's free tier sleeps the backend (see the live demo section). For a real product this would be on a paid plan or a provider with no cold-start penalty.
+- Authentication is not part of the spec, so there is none. In production, at minimum the mutating routes would need a session or token check.
