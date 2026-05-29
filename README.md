@@ -103,4 +103,3 @@ docker compose down -v
 | LOW_STOCK_THRESHOLD       | backend   | Low-stock cutoff for the dashboard |
 | VITE_API_URL              | frontend  | Backend base URL (build-time)      |
 
-See `DEPLOYMENT.md` for deployment on Render + Vercel.
